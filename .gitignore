@@ -1,0 +1,15 @@
+artifacts/
+*.pt
+*.pkl
+*.npy
+*.json  # Si contienen métricas / reportes generados por el entrenamiento y no código fuente
+
+.vector_cache/
+
+__pycache__/
+*.pyc
+
+.streamlit/
+
+*.ipynb_checkpoints
+.vscode/
