@@ -116,7 +116,9 @@ if __name__ == "__main__":
     torch.save(best_model.state_dict(), "artifacts/lstm_best.pt")
     with open("artifacts/lstm_vocab.pkl", "wb") as f:
         pickle.dump(vocab, f)
-    print("✅ Pesos y vocab guardados")
+    with open("artifacts/bilstm_best_params.pkl", "wb") as f:
+        pickle.dump(best, f)
+    print("✅ Pesos, vocab y mejores hiperparámetros guardados")
 
     # ---------- e. Reporte ----------
     best_model.eval(); preds=[]
@@ -125,3 +127,4 @@ if __name__ == "__main__":
             preds.extend(best_model(x).argmax(1).tolist())
     save_report(test_df["label"], preds, "lstm")
     print("ℹ️ Reportes listos")
+

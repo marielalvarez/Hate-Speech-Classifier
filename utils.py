@@ -26,7 +26,7 @@ def save_report(y_true, y_pred, name: str, out_dir="artifacts"):
 
 def plot_confusion(cm: np.ndarray, labels=("non-hate", "hate"), title="Confusion Matrix"):
     plt.figure(figsize=(4,3))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Greys",
                 xticklabels=labels, yticklabels=labels)
     plt.title(title)
     plt.xlabel("Predicted"); plt.ylabel("True")

@@ -1,14 +1,39 @@
-import streamlit as st, pandas as pd, optuna
-import plotly.express as px, os
-st.title("🔧 Hyperparameter Tuning (Optuna)")
+import streamlit as st
+import optuna
+import pandas as pd
+from pathlib import Path
+from optuna.visualization import (
+    plot_optimization_history, plot_param_importances
+)
 
-if os.path.exists("artifacts/study.db"):
-    study = optuna.load_study(study_name="lstm", storage="sqlite:///artifacts/study.db")
-    df = study.trials_dataframe()
-    st.subheader("Resultados de los 10 trials")
-    st.dataframe(df[["number","value","params.hidden","params.dropout","params.lr","params.bs"]])
-    fig = px.line(df, x="number", y="value", title="Error vs Trial")
-    st.plotly_chart(fig)
-    st.write("Mejores parámetros:", study.best_params)
-else:
-    st.info("Ejecuta `train_lstm.py` para generar el Optuna study.")
+DB_PATH = Path("artifacts/bilstm_study.db")
+STUDY_NAME = "bilstm_search"
+
+st.title("💻 Hyperparameter Tuning (Optuna)")
+
+if not DB_PATH.exists():
+    st.error(
+        "Optuna.database does not exist yet.\n"
+        "Run `python train_lstm.py` to generate the trials."
+    )
+    st.stop()
+
+study = optuna.load_study(study_name=STUDY_NAME,
+                          storage=f"sqlite:///{DB_PATH}")
+
+if len(study.trials) == 0:
+    st.error("The study exists but does not yet contain trials.")
+    st.stop()
+
+st.subheader("Best Hiperparameters")
+best_df = pd.DataFrame(study.best_params.items(), columns=["Parameter", "Value"])
+st.dataframe(best_df, use_container_width=True)
+
+st.subheader("Convergence curve")
+st.plotly_chart(plot_optimization_history(study), use_container_width=True)
+
+st.subheader("Importance of each parameter")
+st.plotly_chart(plot_param_importances(study), use_container_width=True)
+
+df_trials = study.trials_dataframe(attrs=("number", "value", "params", "state"))
+st.dataframe(df_trials, use_container_width=True)
