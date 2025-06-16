@@ -1,3 +1,5 @@
+# This page is an introduction to the problem & solution.
+
 import pandas as pd
 import streamlit as st
 
@@ -66,10 +68,6 @@ st.markdown(
 )
 
 
-st.write(
-    "The dataset’s moderate class imbalance mirrors reality yet remains "
-    "manageable for deep models without heavy resampling."
-)
 
 
 
@@ -131,9 +129,7 @@ st.markdown(
       confusion matrix), and read the error analysis.
 
 
-    ---
-    Mariel Álvarez Salas · A01198828 · Repo: https://github.com/marielalvarez/Hate-Speech-Classifier
-    """
+        """
 )
 st.divider()
 
@@ -148,3 +144,7 @@ st.markdown(
        *IEEE Access*, 2023.
     """
 )
+
+st.divider()
+
+st.markdown('Mariel Álvarez Salas · A01198828 · Repo: https://github.com/marielalvarez/Hate-Speech-Classifier')

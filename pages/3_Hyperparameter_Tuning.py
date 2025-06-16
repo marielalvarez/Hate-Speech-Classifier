@@ -1,6 +1,3 @@
-# 3_Hyperparameter_Tuning.py
-# -------------------------------------------------------------
-# Streamlit page – Hyperparameter tuning with Optuna
 import streamlit as st
 import optuna
 import pandas as pd
@@ -18,7 +15,11 @@ OBJ_NAME  = "Validation Error (1 - Acc.)"
 st.set_page_config(page_title="Hyperparameter Tuning", page_icon="🛠️")
 st.title("Hyperparameter Tuning (Optuna)")
 
-st.warning('poner que fue para lstm')
+st.write('The hyperparameter tuning was focused on the Bi-LSTM model to ' \
+'explore its capacity to capture sequential and contextual patterns in tweets. ' \
+'Unlike the baseline, which has no tunable architecture, and BERT, which benefits ' \
+'from pre-trained configurations, the Bi-LSTM required tuning to balance model complexity, regularization, '
+'and learning dynamics for this task.')
 
 if not DB_PATH.exists():
     st.error("Optuna DB not found. Run `python train_lstm.py` first.")

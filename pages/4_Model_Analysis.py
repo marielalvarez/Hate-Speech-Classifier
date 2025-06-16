@@ -1,98 +1,130 @@
-import streamlit as st, json, numpy as np, seaborn as sns, matplotlib.pyplot as plt, os, pandas as pd
-from utils import plot_confusion
+# – Model evaluation, reports & error analysis
 
-st.title("Model Analysis & Justification")
+import streamlit as st
+import pandas as pd
+import numpy as np
+import json
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import classification_report
+from utils import load_data
 
-def load_artifact(name):
-    with open(f"artifacts/{name}_report.json") as f:
-        rep = json.load(f)
-    cm = np.load(f"artifacts/{name}_cm.npy")
-    return rep, cm
+sns.set_theme(style="whitegrid")
 
+st.set_page_config(page_title="Model Evaluation", page_icon="📈")
+st.title("Evaluation & Model Justification")
+
+model_name = st.selectbox(
+    "Choose a model for metrics",
+    ["baseline", "lstm", "bert"]
+)
+
+train_df, test_df = load_data()
+y_true = test_df["label"].to_list()
+
+with open(f"artifacts/{model_name}_report.json") as f:
+    report = json.load(f)
+cm = np.load(f"artifacts/{model_name}_cm.npy")
+
+st.header("①  Model justification")
+if model_name == "baseline":
+    st.markdown(
+        """
+        **TF-IDF + Logistic Regression**  
+        - **Why?** Fast, interpretable benchmark.  
+        - 1–2-gram TF-IDF (30 k features) captures common slurs.  
+        - Sets a transparent performance floor.
+        """
+    )
+elif model_name == "lstm":
+    st.markdown(
+        """
+        **Bi-LSTM w/ trainable embeddings**  
+        - **Why?** Captures word order & compositional context.  
+        - Optimized hidden size, dropout & learning rate via Optuna.  
+        - Addresses sequential patterns and long-range cues.
+        """
+    )
+else:
+    st.markdown(
+        """
+        **BERT (bert-base-uncased)**  
+        - **Why?** Deep self-attention handles polysemy, sarcasm, and
+          long-distance dependencies.  
+        - Fine-tuned for 3 epochs with early-stopping on validation accuracy.  
+        - Achieves state-of-the-art performance on social media text.
+        """
+    )
+
+st.markdown("---")
+
+st.header("②  Classification report")
+df_report = pd.DataFrame(report).T.round(3)
+st.dataframe(df_report, use_container_width=True)
+
+st.markdown("---")
+
+st.header("③  Confusion matrix")
+fig, ax = plt.subplots(figsize=(4,3))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Greys",
+            xticklabels=["Non-Hate","Hate"],
+            yticklabels=["Non-Hate","Hate"],
+            ax=ax)
+ax.set_xlabel("Predicted")
+ax.set_ylabel("True")
+ax.set_title(f"{model_name.upper()} confusion matrix")
+st.pyplot(fig)
+
+st.markdown("---")
+
+st.header("④  Error analysis & examples")
+
+# gather predictions
+preds = []
+if model_name == "baseline":
+    # baseline predictions need a reload, so derive from report keys
+    # assume save_report saved preds in JSON; otherwise reload model
+    preds = pd.read_json(f"artifacts/baseline_preds.json", typ='series').tolist()
+else:
+    preds = pd.read_json(f"artifacts/{model_name}_preds.json", typ='series').tolist()
+
+df_test = test_df.copy()
+df_test["pred"] = preds
+fp = df_test[(df_test.label == 0) & (df_test.pred == 1)].sample(3, random_state=42)
+fn = df_test[(df_test.label == 1) & (df_test.pred == 0)].sample(3, random_state=42)
+
+st.subheader("False Positives (predicted HATE but actually NON-HATE)")
+for _, row in fp.iterrows():
+    st.markdown(f"> {row.tweet}")
+
+st.subheader("False Negatives (predicted NON-HATE but actually HATE)")
+for _, row in fn.iterrows():
+    st.markdown(f"> {row.tweet}")
 
 st.divider()
 
-col1, col2, col3 = st.columns(3)
+st.header("Global Insights")
 
-with col1:
-    st.subheader("Baseline  ·  TF-IDF + LogReg")
-    st.markdown(
-        """
-        **Purpose**  
-        Provide a **reference point – a fast, transparent model that can be
-        always beat (or at least explain).
+st.markdown(
+     """
+     Key observations
+     
+    - Slur ≠ hate as mdels still over-penalise reclaimed or quoted slurs.
+ 
+    - Models are over-sensitive to profanity yet still rely on explicit slurs for hate, missing nuanced or coded language.
 
-        **Key traits**  
-        - Bag-of-words TF-IDF vectors *(1-2 grams, 30 k features)*  
-        - ℓ2-regularised **Logistic Regression** (`max_iter=200`)  
-        - Accuracy ≈ **56 %** on the held-out test set  
+    - Obfuscated hate (numeronyms, rare neologisms) requires character- or byte-level coverage beyond wordpieces.
 
-        **Why keep it?**  
-        - Instant inference for large batches  
-        - Easy to interpret feature weights  
-        """,
-        unsafe_allow_html=False,
-    )
+    - Universal negative statements (“all X…”, “X stunt kids”) are an enduring blind spot—addressable with linguistic rules + targeted data.
 
-with col2:
-    st.subheader(" Bi-LSTM  ·  Word Embeddings")
-    st.markdown(
-        """
-        **Purpose**  
-        Capture **word order** and contextual patterns that the baseline
-        ignores, while still running on commodity hardware.
+    Next actions
 
-        **Key traits**  
-        - 128-dim **trainable embeddings** initialised with Xavier  
-        - **Bidirectional LSTM** with global-max pooling  
-        - Hyper-parameters tuned via **Optuna** *(hidden_dim, dropout, lr, batch_size)*  
+    - Curate micro-aggression and implicit-hate examples for fine-tuning.
 
-        **Why it matters**  
-        - Learns phrase-level cues such as *“go back to …”*  
-        - Demonstrates the value of **representation learning** over sparse vectors  
-        """,
-        unsafe_allow_html=False,
-    )
+    - Plug in a character-CNN or byte-BERT front-end to decode numeronyms and unseen slurs.
 
-with col3:
-    st.subheader("BERT  ·  Transformer Heavyweight")
-    st.markdown(
-        """
-        **Purpose**  
-        Serve as the **state-of-the-art** contender and production candidate,
-        leveraging deep contextual representations.
+    - Periodic error-driven re-sampling: every week, feed 100 misclassified tweets back into fine-tuning to close the most painful gaps.
 
-        **Key traits**  
-        - Fine-tuned **`bert-base-uncased`** (110 M parameters)  
-        - Self-attention captures **long-range dependencies** & nuanced semantics  
-        - Trained for **3 epochs** with early stopping on validation accuracy  
-        - Accuracy ≈ **85 %**, outperforming Bi-LSTM by **~6 pp**  
-
-        **Why it wins**  
-        - Handles sarcasm, slurs, and spelling variations better  
-        - Transfer-learning = strong performance even with limited labelled data  
-        """,
-        unsafe_allow_html=False,
-    )
-
-st.divider()
-
-model_opt = st.selectbox("Choose a modle for getting metrics.", ["baseline", "lstm", "bert"])
-if not os.path.exists(f"artifacts/{model_opt}_report.json"):
-    st.error("The artifact was not found. Train the model first.")
-    st.stop()
-
-rep, cm = load_artifact(model_opt)
-st.subheader("Classification report")
-
-
-rep_df = pd.DataFrame(rep).T  
-st.dataframe(rep_df.style.format(precision=3))
-
-st.subheader("Confusion matrix")
-plot_confusion(cm, title=f"{model_opt.upper()} CM")
-st.pyplot(plt.gcf())
-
-st.subheader("Error analysis")
-fp_idx = np.where( (rep['1']['precision'] < 1.0) )[0]  
-st.warning("Analiza falsos positivos/negativos y patrones: sarcasmo, ofensivas sutiles, etc.")
+    - Curated data augmentation to catch quantifier-based generalisations and pronoun misgendering.
+    """
+)

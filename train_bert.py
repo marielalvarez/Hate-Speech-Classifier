@@ -3,6 +3,10 @@ from transformers import (AutoTokenizer, AutoModelForSequenceClassification,
 from datasets import Dataset
 from utils import load_data, save_report
 import numpy as np, os
+import json
+
+# tunes BERT and generales reports in json format for Streamlit.
+
 
 train_df, test_df = load_data()
 tok = AutoTokenizer.from_pretrained("google-bert/bert-base-uncased")
@@ -18,16 +22,16 @@ model = AutoModelForSequenceClassification.from_pretrained(
             "google-bert/bert-base-uncased", num_labels=2)
 
 def compute_metrics(eval_pred):
-    logits, labels = eval_pred          # labels = numpy array
+    logits, labels = eval_pred          
     preds = np.argmax(logits, axis=-1)
-    acc = (preds == labels).mean()      # simple accuracy
+    acc = (preds == labels).mean()     
     return {"accuracy": acc}
 args = TrainingArguments(
     output_dir="artifacts/bert_model",
     evaluation_strategy="epoch",
     save_strategy="epoch",
     learning_rate=2e-5,
-    per_device_train_batch_size=8,     # CPU-friendly
+    per_device_train_batch_size=8,     
     per_device_eval_batch_size=8,
     num_train_epochs=3,
     load_best_model_at_end=True,
@@ -47,7 +51,12 @@ print("✅ BERT fine-tuned")
 pred_logits = trainer.predict(test_ds).predictions
 y_pred = np.argmax(pred_logits, axis=1)
 save_report(test_df["label"], y_pred, "bert")
-print("ℹ️ Reportes en artifacts/")
+
+with open("artifacts/bert_preds.json", "w") as f:
+    json.dump(y_pred.tolist(), f)
+
+print("✅ BERT preds saved to artifacts/bert_preds.json")
+print("Reportes en artifacts/")
 
 trainer.save_model("artifacts/bert_model")      
 tok.save_pretrained("artifacts/bert_model")

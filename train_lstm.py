@@ -1,4 +1,3 @@
-# train_lstm.py  ─ Bi-LSTM definitivo, sin efectos colaterales al importar
 import os, re, torch, optuna, pickle
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -6,12 +5,15 @@ from torchtext.vocab import vocab as build_vocab
 from collections import Counter
 from sklearn.model_selection import train_test_split
 from utils import load_data, save_report
+import json
+
+# trains bi-lstm and generales reports in json format for Streamlit.
+
 
 torch.manual_seed(42)
 device   = torch.device("cpu")
-emb_dim  = 128          # ← accesible desde otros módulos
+emb_dim  = 128         
 
-# ───────────────────────── 1. MODELO (sin lógica de training) ─────────────
 class BiLSTMClassifier(nn.Module):
     def __init__(self, vocab_size, emb_dim, hidden_dim, dropout, pad_idx):
         super().__init__()
@@ -25,13 +27,11 @@ class BiLSTMClassifier(nn.Module):
     def forward(self, x):
         x = self.emb(x)
         o, _ = self.lstm(x)
-        x, _ = torch.max(o, dim=1)         # Global-Max-Pool
+        x, _ = torch.max(o, dim=1)         
         x = torch.relu(self.fc1(self.drop(x)))
         return self.out(x)
 
-# ───────────────────────── 2. ENTRENAMIENTO (solo si run) ────────────────
 if __name__ == "__main__":
-    # ---------- a. Vocab ----------
     train_df, test_df = load_data()
     train_txt, val_txt, train_lbl, val_lbl = train_test_split(
         train_df["tweet"], train_df["label"], test_size=0.1, random_state=42)
@@ -49,7 +49,6 @@ if __name__ == "__main__":
     vocab.set_default_index(vocab[UNK])
     print(f"Vocab size: {len(vocab)}  |  Emb dim: {emb_dim}")
 
-    # ---------- b. Datasets ----------
     class TweetsDS(Dataset):
         def __init__(self, texts, labels, vocab, seq_len=50):
             self.labels = labels.tolist(); self.vocab = vocab; self.seq_len = seq_len
@@ -67,7 +66,6 @@ if __name__ == "__main__":
     val_ds = TweetsDS(val_txt,   val_lbl,   vocab)
     test_ds= TweetsDS(test_df["tweet"], test_df["label"], vocab)
 
-    # ---------- c. Optuna ----------
     def objective(trial):
         h  = trial.suggest_categorical("hidden_dim", [32, 64, 128])
         dr = trial.suggest_float("dropout", 0.3, 0.6)
@@ -99,7 +97,7 @@ if __name__ == "__main__":
     study.optimize(objective, n_trials=10, show_progress_bar=True)
     best = study.best_params; print("🥇 Best params:", best)
 
-    # ---------- d. Train final ----------
+    #  Train final 
     best_model = BiLSTMClassifier(len(vocab), emb_dim,
                                   best["hidden_dim"], best["dropout"],
                                   vocab[PAD]).to(device)
@@ -120,11 +118,15 @@ if __name__ == "__main__":
         pickle.dump(best, f)
     print("✅ Pesos, vocab y mejores hiperparámetros guardados")
 
-    # ---------- e. Reporte ----------
     best_model.eval(); preds=[]
     with torch.no_grad():
         for x,_ in DataLoader(test_ds, 64):
             preds.extend(best_model(x).argmax(1).tolist())
     save_report(test_df["label"], preds, "lstm")
+    with open("artifacts/lstm_preds.json", "w") as f:
+        json.dump(preds, f)
+
+    print("ℹ️ Reportes listos")
+    print("✅ Bi-LSTM preds saved to artifacts/lstm_preds.json")
     print("ℹ️ Reportes listos")
 

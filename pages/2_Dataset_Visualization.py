@@ -1,6 +1,3 @@
-# 2_Dataset_Visualization.py  ─ Streamlit Page 2
-# --------------------------------------------------------------------
-# Goal: score full 10 pts in rubric block “Streamlit Page 2 – Dataset EDA”
 
 import streamlit as st
 import pandas as pd
@@ -9,7 +6,7 @@ import seaborn as sns
 import numpy as np
 from utils import load_data, make_wordcloud
 
-sns.set_theme(style="whitegrid")  # coherent look
+sns.set_theme(style="whitegrid")  
 
 train_df, test_df = load_data()
 train_df["n_tokens"] = train_df["tweet"].str.split().str.len()
