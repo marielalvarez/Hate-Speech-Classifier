@@ -24,7 +24,7 @@ predictions through a **Streamlit** web interface ([Link here](https://hate-spee
 * **Models**  
   1. **TF‑IDF + Logistic Regression** – fast, transparent benchmark.  
   2. **Bi‑LSTM** – contextual sequence model; hyper‑parameters tuned with Optuna.  
-  3. **BERT (bert‑base‑uncased)** – fine‑tuned 3 epochs; weights pushed to the HuggingFaceHub <https://huggingface.co/marielalvs/bert‑hate‑speech>.
+  3. **BERT (bert‑base‑uncased)** – fine‑tuned 3 epochs; weights pushed to the HuggingFaceHub <https://huggingface.co/marielalvs/hatespeech-bert>
 * **Artefacts**  
   * BERT checkpoint is retrieved directly from the **Hugging Face Hub**.
 * **App pages**  
