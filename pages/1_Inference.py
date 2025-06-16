@@ -3,6 +3,9 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from utils import load_data
 
 st.title("Inference Interface")
+st.write("The models are downloading from drive.")
+choices = {"Baseline LR": "baseline", "LSTM": "lstm", "BERT": "bert"}
+model_name = st.selectbox("Select a model for your predictions.", list(choices.keys()))
 
 GDRIVE = {
     "tfidf.pkl":              "1i__vZFTIspqTZqdGDmQrkG67_5t6hnfr",
@@ -58,8 +61,6 @@ def load_models():
 
 tfidf, base_lr, tok, bert_model, lstm_vocab, lstm_model = load_models()
 
-choices = {"Baseline LR": "baseline", "LSTM": "lstm", "BERT": "bert"}
-model_name = st.selectbox("Select a model for your predictions.", list(choices.keys()))
 txt = st.text_area("Write a message...", height=150)
 
 def predict(text, model_sel):

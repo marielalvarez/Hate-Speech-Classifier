@@ -1,4 +1,3 @@
-*.pkl
 .vector_cache/
 
 __pycache__/
