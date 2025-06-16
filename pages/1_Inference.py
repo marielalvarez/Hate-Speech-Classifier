@@ -4,7 +4,7 @@ from utils import load_data
 import json, os
 import re
 
-st.title("📝 Inference Interface")
+st.title("Inference Interface")
 
 import pickle, torch.nn.functional as F
 
@@ -40,7 +40,7 @@ def load_models():
 tfidf, base_lr, tok, bert_model, lstm_vocab, lstm_model = load_models()
 
 choices = {"Baseline LR": "baseline", "LSTM": "lstm", "BERT": "bert"}
-model_name = st.selectbox("Model", list(choices.keys()))
+model_name = st.selectbox("Select a model for your predictions.", list(choices.keys()))
 txt = st.text_area("Write a message...", height=150)
 
 def predict(text, model_sel):
